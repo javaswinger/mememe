@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-129744664-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-129744664-1');
+    </script>
+
+    <title>Meme Me!</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Let's play the Meme Me! game (powered by https://http.cat, https://httpstatusdogs.com, https://memegenerator.net/api)">
+    <meta name="author" content="Rick Evans">
+
+    <!-- see https://css-tricks.com/favicon-quiz/ -->
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16">
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32">
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+    <link rel="icon" type="image/png" href="/android-icon-192x192.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
+    <meta name="msapplication-TileImage" content="/ms-icon-144x144.png">
+
+    <link href="https://fonts.googleapis.com/css?family=Amaranth|Open+Sans" rel="stylesheet">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <!-- see https://css-tricks.com/snippets/css/a-guide-to-flexbox/ -->
+    <style>
+      .meme-item {
+        border: 1px solid rgb(20%,0%,60%);
+        box-shadow: 4px 4px 3px rgba(20%,0%,60%,.4);
+      }
+
+      /* see https://jsfiddle.net/2qeo99k3/4/ */
+      .meme-dialog .modal-body {
+        max-height: calc(100vh - 210px);
+        overflow-y: auto;
+      }
+
+      body {
+        font-family: 'Amaranth', sans-serif;
+      }
+
+      .meme-fg {
+        color: rgb(20%,0%,60%);
+      }
+
+      .meme-bg {
+        background-color: rgba(20%,0%,60%,.25);
+        color: rgb(20%,0%,60%);
+      }
+
+      .meme-data {
+        color: #333333;
+        margin-left: 13rem;
+      }
+
+      .meme-data,
+      .meme-title {
+        font-family: 'Open Sans', sans-serif;
+      }
+
+      /* bootstrap 4 overrides */
+      .modal-backdrop {
+         background-color: rgb(20%,0%,60%);
+      }
+
+      .modal-backdrop.show {
+        opacity: .8;
+      }
+    </style>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="http://version1.api.memegenerator.net/javascript.js"></script>
+
+    <script>
+      // see https://http.cat/100.jpg
+      var HTTP_STATUS_CODE_TEMPLATE_VALUE = '{code}';
+      var HTTP_STATUS_CODE_CATS_TEMPLATE = 'https://http.cat/' + HTTP_STATUS_CODE_TEMPLATE_VALUE + '.jpg';
+      var HTTP_STATUS_CODE_DOGS_TEMPLATE = 'https://httpstatusdogs.com/img/' + HTTP_STATUS_CODE_TEMPLATE_VALUE + '.jpg';
+      var HTTP_STATUS_CODES = [ 100, 101, 200, 201, 202, 204, 206, 207, 300, 301, 302, 303, 304, 305, 307,
+        400, 401, 402, 403, 404, 405, 406, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 420, 421, 422, 423, 424, 425, 426, 429, 431, 444, 450, 451,
+        500, 502, 503, 504, 506, 507, 508, 509, 510, 511, 599
+      ];
+
+      var HTTP_STATUS_CODES_DOGS_EXCLUSIONS = [ 101, 415, 421, 511, 599 ];
+
+      /*
+        for more memes see:
+          https://imgflip.com/memesearch?q=cats
+          https://imgflip.com/memesearch?q=dogs
+      */
+      var MEME_TYPE = 'cats'; // 'cats', 'dogs', or 'new' or 'popular'
+
+      var API_KEY = 'd0fdec67-cae7-4509-a255-e772fe86a2ff'; // apiDemo
+      var BASE_URL = 'http://version1.api.memegenerator.net/';
+      var MAX_IMAGES = 24;
+
+      function defineMemeHandlers() {
+        $('[data-toggle="tooltip"]').tooltip();
+      }
+
+      function processHttpStatusCodeImages(codes, template, template_code, exclusions) {
+        $.each(codes, function(index, value) {
+          if (exclusions && exclusions.includes(value)) {
+          } else {
+            var url = template.replace(template_code, value);
+            var text = 'HTTP status code: ' + value;
+            var image = '<figure class="figure"><img class="m-2 rounded meme-item align-self-start flex-fill" src="' + url + '" width="250" alt="' + text + '" title="' + text + '" data-toggle="tooltip" data-url="' + url + '" data-http-status-code="' + value + '"><figcaption class="figure-caption text-right">' + value + '</figcaption></figcaption></figure>';
+            $('.meme-container').append(image);
+            //console.log(value);
+          }
+        });
+      }
+
+      function processImages(images) {
+        $.each(images, function(index, value) {
+          var text = value.displayName;
+          var image = '<figure class="figure"><img class="m-2 rounded meme-item align-self-start flex-fill" src="' + value.imageUrl + '" width="250" alt="' + text + '" title="' + text + '" data-toggle="tooltip" data-url-name="' + value.urlName + '" data-generator-id="' + value.generatorID + '" data-image-id="' + value.imageID + '"><figcaption class="figure-caption text-right">' + value.generatorID + ' / ' + value.imageID + '</figcaption></figcaption></figure>';
+          $('.meme-container').append(image);
+          //console.log(value);
+        });
+      }
+
+      // see https://developers.google.com/web/fundamentals/primers/promises
+      function processPromises(promises) {
+        promises.then(function(result) {
+          processImages(result);
+        }, function(err) {
+          console.log('Error: ' + err);
+        });
+      }
+
+      function loadMemesByType(memeType, starting_index) {
+        var start = (starting_index * MAX_IMAGES) + 1;
+
+        window.MgApi.SetApiKey(API_KEY);
+        var memes;
+        var memeURL;
+
+        if (memeType.match(/popular/i)) {
+          memeURL = BASE_URL + 'Generators_Select_ByPopular';
+          memes = window.MgApi.Generators_Select_ByPopular(start, MAX_IMAGES);
+        } else {
+          memeURL = BASE_URL + 'Generators_Select_ByNew';
+          memes = window.MgApi.Generators_Select_ByNew(start, MAX_IMAGES);
+        }
+
+        /* using jQuery AJAX...
+        $.ajax({
+          url: memeURL,
+          data: { 'apiKey': API_KEY, 'pageIndex': starting_index, 'pageSize': MAX_IMAGES },
+          context: document.body
+        }).done(function(data) {
+          if (starting_index === 0) {
+            $('.meme-container').empty();
+          }
+          processImages(data.result);
+        });
+        ...using jQuery AJAX */
+
+        if (starting_index === 0) {
+          $('.meme-container').empty();
+        }
+
+        processPromises(memes);
+      }
+
+      function loadMemes() {
+        switch (MEME_TYPE) {
+          case 'new':
+          case 'popular':
+            loadMemesByType(MEME_TYPE, 0);
+            loadMemesByType(MEME_TYPE, 1);
+            loadMemesByType(MEME_TYPE, 2);
+            loadMemesByType(MEME_TYPE, 3);
+            loadMemesByType(MEME_TYPE, 4);
+            loadMemesByType(MEME_TYPE, 5);
+            loadMemesByType(MEME_TYPE, 6);
+            break;
+
+          case 'cats':
+            processHttpStatusCodeImages(HTTP_STATUS_CODES, HTTP_STATUS_CODE_CATS_TEMPLATE, HTTP_STATUS_CODE_TEMPLATE_VALUE);
+            break;
+
+          case 'dogs':
+            processHttpStatusCodeImages(HTTP_STATUS_CODES, HTTP_STATUS_CODE_DOGS_TEMPLATE, HTTP_STATUS_CODE_TEMPLATE_VALUE, HTTP_STATUS_CODES_DOGS_EXCLUSIONS);
+            break;
+
+          default:
+            alert('Did not recognize the type of Memes to load, should be "dogs", "cats", "popular", or "new"');
+        }
+
+        defineMemeHandlers();
+      }
+
+      $( document ).ready(function() {
+
+        $('.modal .modal-title').on('click', function() {
+          var copyEvent = new ClipboardEvent('copy', { dataType: 'text/plain', data: $(this).find('.meme-data').text() });
+          document.dispatchEvent(copyEvent);
+        });
+
+        $(document).on('click', 'body .meme-item', function(event) {
+          $('[data-toggle="tooltip"]').tooltip('hide');
+          var title = '';
+          if ($(event.target).data('generator-id')) {
+            title = $(event.target).data('generator-id') + ' / ' + $(event.target).data('image-id');
+          } else {
+            title = $(event.target).data('url');
+          }
+          $('.modal').find('.modal-title').find('.meme-data').text(title);
+          $('.modal').find('.meme-title').text($(event.target).prop('alt'));
+          $('.modal').find('.modal-body').find('img').prop('src', $(event.target).prop('src')).css('max-height', $(window).height());
+          //$(event.target).clone().appendTo($('.modal').find('.modal-body'));
+          $('.modal').modal({ show: true });
+        });
+
+        var url = new URL(window.location.href);
+        var type = url.searchParams.get('type');
+        if (type) {
+          MEME_TYPE = type;
+        }
+        loadMemes();
+      });
+    </script>
+  </head>
+  <body class="meme-bg">
+    <header class="clearfix">
+      <h1 class="meme-fg float-left p-2">Meme Me!</h1>
+    </header>
+
+    <div class="meme-container d-flex flex-row flex-wrap justify-content-start align-items-start"></div>
+
+    <div class="modal fade modal-lg meme-dialog" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header meme-bg">
+            <h5 class="modal-title">Meme Me! <span class="meme-data"></span></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <img width="100%" height="100%" alt="" src="https://memegenerator.net/img/images/7655772.jpg"/>
+          </div>
+          <div class="modal-footer">
+            <span class="meme-title"></span>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="p-2">
+      Meme Me! is powered by <a href="https://http.cat" target="reference">HTTP cats</a>, <a href="https://httpstatusdogs.com" target="reference">HTTP dogs</a>, <a href="https://memegenerator.net/api" target="reference">memegenerator.net</a>
+    </footer>
+  </body>
+</html>
